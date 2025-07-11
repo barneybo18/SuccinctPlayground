@@ -12,13 +12,11 @@ import {
 } from "@/components/ui/card";
 
 
-interface LessonPageProps {
-  params: {
-    lessonId: string;
-  };
-}
-
-export default async function LessonPage({ params }: LessonPageProps) {
+export default async function LessonPage({
+  params,
+}: {
+  params: { lessonId: string };
+}) {
   const supabase = await createClient();
   const { userId } = await auth();
 
