@@ -20,10 +20,17 @@ export default async function LessonPage({
   const supabase = await createClient();
   const { userId } = await auth();
 
+  const lessonIdNum = parseInt(params.lessonId, 10);
+
+  if (isNaN(lessonIdNum)) {
+    // If the ID is not a number, it can't exist in the database.
+    notFound();
+  }
+
   const { data: lesson, error } = await supabase
     .from("lessons")
     .select("*")
-    .eq("id", params.lessonId)
+    .eq("id", lessonIdNum)
     .single();
 
   if (error || !lesson) {

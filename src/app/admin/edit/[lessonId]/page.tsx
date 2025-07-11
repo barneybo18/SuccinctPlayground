@@ -6,18 +6,15 @@ import { notFound } from "next/navigation";
 export default async function EditLessonPage({
   params,
 }: {
-  params: Promise<{ lessonId: string }>;
+  params: { lessonId: string };
 }) {
-  // Await params to access lessonId
-  const { lessonId } = await params;
+  const lessonIdNum = parseInt(params.lessonId, 10);
 
-  // Validate lessonId (ensure it's a valid UUID if needed)
-  if (!lessonId) {
+  if (isNaN(lessonIdNum)) {
     notFound();
   }
 
-  // Fetch lesson using lessonId as a string (UUID)
-  const lesson = await getLessonById(lessonId);
+  const lesson = await getLessonById(lessonIdNum);
 
   if (!lesson) {
     notFound();

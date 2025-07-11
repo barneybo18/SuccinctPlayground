@@ -55,8 +55,7 @@ export async function getLessons(): Promise<Lesson[]> {
 }
 
 // Action to get a single lesson by ID
-export async function getLessonById(lessonId: string) {
-  // Query Supabase with lessonId as a string (UUID)
+export async function getLessonById(lessonId: number) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lessons")
