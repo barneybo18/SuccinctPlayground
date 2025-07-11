@@ -1,10 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
 import { motion, Variants } from "framer-motion";
-import { SignedIn, SignedOut} from "@clerk/nextjs";
-import Link from "next/link";
+import {
+  Button
+} from "@/components/ui/button";
+
 import {
   Sparkles,
   Lightbulb,
@@ -34,6 +35,7 @@ import {
   Puzzle,
   Beaker,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState, useMemo } from "react";
 
 const backgroundIcons = [
@@ -338,25 +340,15 @@ export default function Home() {
             </motion.p>
 
             <motion.div variants={FADE_IN_ANIMATION_VARIANTS}>
-              <SignedIn>
-                <Button
-                  size="lg"
-                  asChild
-                  className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
-                >
-                  <Link href="/dashboard">Explore!</Link>
-                </Button>
-              </SignedIn>
-
-              <SignedOut>
-                <Button
-                  size="lg"
-                  asChild
-                  className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
-                >
-                  <Link href="/dashboard">Get Started</Link>
-                </Button>
-              </SignedOut>
+              <Button
+                size="lg"
+                asChild
+                className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg hover:shadow-pink-500/40 transform hover:-translate-y-1"
+              >
+                <Link href="/dashboard">
+                  Explore the Playground
+                </Link>
+              </Button>
             </motion.div>
 
             <motion.div
