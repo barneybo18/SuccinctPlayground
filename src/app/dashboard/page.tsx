@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { Header } from "@/components/header";
@@ -15,20 +14,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 // import { Chat } from "@/components/chat";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { quizList } from "@/lib/quiz-data";
 
 // Mock data for the learning games
 const gameModules = [
   {
     title: "Maze Generator and Solver",
     description:
-      "Waatch algorithms create and solve mazes in real-time. A fun way to visualize ZK concepts.",
+      "Watch algorithms create and solve mazes in real-time. A fun way to visualize pathfinding concepts.",
     href: "/games/maze",
   },
   {
     title: "ZK Physics Playground",
     description:
-      "Experiment with physics concepts like gravity, motion, and collisions in a virtual playground.",
+      "Experiment with physics concepts like gravity and collisions in a virtual sandbox.",
     href: "/games/physics",
   },
   {
@@ -46,39 +45,25 @@ const gameModules = [
   {
     title: "Succinct EGG 3D-dash",
     description:
-      "Just a fun 3D game where you dash through obstacles and collect eggs. i am not sure how this relates to ZK, but it is fun.",
+      "Also an Inspiration from Adavaith's love for eggs. 😁",
     href: "/games/threeDEgg",
+  }, 
+  {
+    title: "Fried Sweeper",
+    description:
+      "avoid the mines and collect fried eggs in this fun twist on the classic game.",
+    href: "/games/friedSweeper",
   },
+//   {
+//     title: "ZK Pacman",
+//     description:
+//       "Navigate the maze, collect tokens, and avoid ghosts in this ZK-powered version of Pacman.",
+//     href: "/games/zkPac",
+//   },
 ];
-
-interface Lesson {
-  id: string;
-  title: string;
-  description: string | null;
-}
-
-// Since we are focusing on games, we can use a placeholder for lessons.
-// In a real application, this would be fetched from a database.
-const lessons: Lesson[] = [];
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-
-  const totalPages = Math.ceil(lessons.length / itemsPerPage);
-  const paginatedLessons = lessons.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
-
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -122,13 +107,44 @@ export default function DashboardPage() {
             className="text-2xl md:text-3xl font-bold tracking-tight mb-4"
             variants={itemVariants}
           >
-            Your Games
+            Interactive Games
+          </motion.h2>
+          <motion.div
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12"
+            variants={containerVariants}
+          >
+            {gameModules.map((module) => (
+              <motion.div key={module.title} variants={itemVariants}>
+                <Card className="h-full flex flex-col hover:border-pink-400/60 transition-colors">
+                  <CardHeader>
+                    <CardTitle>{module.title}</CardTitle>
+                    <CardDescription>{module.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow"></CardContent>
+                  <CardFooter className="flex justify-end items-center">
+                    <Button
+                      asChild
+                      className="bg-pink-500 hover:bg-pink-600 text-white"
+                    >
+                      <Link href={module.href}>Start Game</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.h2
+            className="text-2xl md:text-3xl font-bold tracking-tight mb-4"
+            variants={itemVariants}
+          >
+            Knowledge Quizzes
           </motion.h2>
           <motion.div
             className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
             variants={containerVariants}
           >
-            {gameModules.map((module) => (
+            {quizList.map((module) => (
               <motion.div key={module.title} variants={itemVariants}>
                 <Card className="h-full flex flex-col hover:border-pink-400/60 transition-colors">
                   <CardHeader>
@@ -141,64 +157,13 @@ export default function DashboardPage() {
                       asChild 
                       className="bg-pink-500 hover:bg-pink-600 text-white"
                     >
-                      <Link href={module.href}>Start Game</Link>
+                      <Link href={`/games/${module.id}`}>Start Quiz</Link>
                     </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
             ))}
           </motion.div>
-
-          <motion.div
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-            variants={containerVariants}
-          >
-            {paginatedLessons.map((module) => (
-              <motion.div key={module.id} variants={itemVariants}>
-                <Card className="h-full flex flex-col hover:border-pink-400/60 transition-colors">
-                  <CardHeader>
-                    <CardTitle>{module.title}</CardTitle>
-                    <CardDescription>{module.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow"></CardContent>
-                  <CardFooter className="flex justify-end items-center">
-                    <Button 
-                      asChild 
-                      className="bg-pink-500 hover:bg-pink-600 text-white"
-                    >
-                      <Link href={`/learn/${module.id}`}>Start Lesson</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-          {totalPages > 1 && (
-            <motion.div
-              className="flex items-center justify-end space-x-2 py-4"
-              variants={itemVariants}
-            >
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          )}
         </motion.div>
       </main>
     </div>
