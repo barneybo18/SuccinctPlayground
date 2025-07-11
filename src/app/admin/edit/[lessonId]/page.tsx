@@ -3,11 +3,12 @@ import { LessonForm } from "@/components/admin/LessonForm";
 import { Header } from "@/components/header";
 import { notFound } from "next/navigation";
 
-export default async function EditLessonPage({
-  params,
-}: {
+// Define the expected props type
+type EditLessonPageProps = {
   params: { lessonId: string };
-}) {
+};
+
+export default async function EditLessonPage({ params }: EditLessonPageProps) {
   const lessonIdNum = parseInt(params.lessonId, 10);
 
   if (isNaN(lessonIdNum)) {
