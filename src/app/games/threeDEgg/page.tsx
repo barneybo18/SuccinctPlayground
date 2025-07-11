@@ -74,6 +74,7 @@ const EggBounceGame: React.FC = () => {
   const [highScore, setHighScore] = useState(0);
   const [gameSpeed, setGameSpeed] = useState(1);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const gameStateRef = useRef({
     scene: null as THREE.Scene | null,
@@ -88,6 +89,7 @@ const EggBounceGame: React.FC = () => {
     eggVelocity: new THREE.Vector3(0, 0, -0.1),
     eggPosition: new THREE.Vector3(0, 0.5, 0),
     keys: {} as { [key: string]: boolean },
+    touches: {} as { [key: string]: boolean },
     animationId: null as number | null,
     lastObstacleSpawn: 0,
     lastFrameTime: performance.now(),
@@ -358,6 +360,7 @@ const EggBounceGame: React.FC = () => {
       eggVelocity: new THREE.Vector3(0, 0, -0.1),
       eggPosition: new THREE.Vector3(0, 0.5, 0),
       keys: {},
+      touches: {},
       animationId: null,
       lastObstacleSpawn: 0,
       lastFrameTime: performance.now(),
@@ -376,6 +379,49 @@ const EggBounceGame: React.FC = () => {
       gameStateRef.current.keys[event.code] = false;
     };
 
+    const handleTouchStart = (event: TouchEvent) => {
+      event.preventDefault();
+      const touches = event.touches;
+      for (let i = 0; i < touches.length; i++) {
+        const touch = touches[i];
+        const touchX = touch.clientX;
+        const touchY = touch.clientY;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Define touch zones
+        if (touchX < windowWidth * 0.33) {
+          gameStateRef.current.touches['left'] = true;
+        } else if (touchX > windowWidth * 0.66) {
+          gameStateRef.current.touches['right'] = true;
+        }
+        if (touchY > windowHeight * 0.66) {
+          gameStateRef.current.touches['jump'] = true;
+        }
+      }
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      event.preventDefault();
+      const touches = event.changedTouches;
+      for (let i = 0; i < touches.length; i++) {
+        const touch = touches[i];
+        const touchX = touch.clientX;
+        const touchY = touch.clientY;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (touchX < windowWidth * 0.33) {
+          gameStateRef.current.touches['left'] = false;
+        } else if (touchX > windowWidth * 0.66) {
+          gameStateRef.current.touches['right'] = false;
+        }
+        if (touchY > windowHeight * 0.66) {
+          gameStateRef.current.touches['jump'] = false;
+        }
+      }
+    };
+
     const handleResize = () => {
       if (gameStateRef.current.camera && gameStateRef.current.renderer) {
         gameStateRef.current.camera.aspect = window.innerWidth / window.innerHeight;
@@ -386,6 +432,8 @@ const EggBounceGame: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
     window.addEventListener('resize', handleResize);
 
     const animate = () => {
@@ -408,6 +456,7 @@ const EggBounceGame: React.FC = () => {
         rightBorder, 
         obstacles, 
         keys, 
+        touches,
         eggVelocity, 
         eggPosition,
         cameraTarget,
@@ -423,14 +472,14 @@ const EggBounceGame: React.FC = () => {
       const groundLevel = 0.3;
       const forwardSpeed = -0.1;
 
-      // Handle input
-      if (keys['ArrowLeft'] || keys['KeyA']) {
+      // Handle input (keyboard and touch)
+      if (keys['ArrowLeft'] || keys['KeyA'] || touches['left']) {
         eggVelocity.x -= lateralSpeed * deltaTime * 60;
       }
-      if (keys['ArrowRight'] || keys['KeyD']) {
+      if (keys['ArrowRight'] || keys['KeyD'] || touches['right']) {
         eggVelocity.x += lateralSpeed * deltaTime * 60;
       }
-      if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && eggPosition.y <= groundLevel + 0.1) {
+      if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touches['jump']) && eggPosition.y <= groundLevel + 0.1) {
         eggVelocity.y = jumpForce;
         gameStateRef.current.isJumping = true;
       }
@@ -515,14 +564,14 @@ const EggBounceGame: React.FC = () => {
           return;
         }
 
-        // Check if obstacle has been passed (more lenient distance)
+        // Check if obstacle has been passed
         if (!obstacle.userData.hasBeenPassed && obstacle.position.z > eggPosition.z + 2) {
           obstacle.userData.hasBeenPassed = true;
           setScore(prev => prev + 10);
           setGameSpeed(prev => Math.min(prev + 0.015, 2.5));
         }
 
-        // Remove obstacles that are far behind (more conservative distance)
+        // Remove obstacles that are far behind
         if (obstacle.position.z > eggPosition.z + 15) {
           scene.remove(obstacle);
           obstacle.geometry.dispose();
@@ -559,6 +608,8 @@ const EggBounceGame: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('resize', handleResize);
       if (gameStateRef.current.animationId) {
         cancelAnimationFrame(gameStateRef.current.animationId);
@@ -577,6 +628,17 @@ const EggBounceGame: React.FC = () => {
       }
     };
   }, [selectedEgg, selectedMap, createEggBreakEffect, createScenery]);
+
+  useEffect(() => {
+    // Detect mobile device
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (gameStarted && !gameOver) {
@@ -598,102 +660,129 @@ const EggBounceGame: React.FC = () => {
   return (
     <div className="w-full h-screen bg-gradient-to-b from-gray-900 to-gray-800 relative overflow-hidden">
       <Link href="/dashboard" passHref>
-        <Button variant="ghost" className="absolute top-6 left-6 z-20 text-white hover:bg-white/20 hover:text-white">
+        <Button variant="ghost" className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 text-white hover:bg-white/20 hover:text-white">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>
       </Link>
 
       {gameStarted && !gameOver && (
-        <div className="absolute top-4 right-4 z-10 text-white">
-          <div className="bg-black bg-opacity-50 rounded-lg p-4 backdrop-blur-sm">
-            <div className="text-2xl font-bold mb-2">Score: {score}</div>
-            <div className="text-sm opacity-80">High Score: {highScore}</div>
-            <div className="text-sm opacity-80">Speed: {gameSpeed.toFixed(1)}x</div>
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 text-white">
+          <div className="bg-black bg-opacity-50 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+            <div className="text-lg sm:text-2xl font-bold mb-1 sm:mb-2">Score: {score}</div>
+            <div className="text-xs sm:text-sm opacity-80">High Score: {highScore}</div>
+            <div className="text-xs sm:text-sm opacity-80">Speed: {gameSpeed.toFixed(1)}x</div>
           </div>
         </div>
       )}
 
       {gameStarted && !gameOver && (
-        <div className="absolute bottom-4 left-4 z-10 text-white">
-          <div className="bg-black bg-opacity-50 rounded-lg p-3 backdrop-blur-sm">
+        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-10 text-white">
+          <div className="bg-black bg-opacity-50 rounded-lg p-2 sm:p-3 backdrop-blur-sm">
             <div className="text-xs opacity-80">
-              <div>← → / A D: Move</div>
-              <div>Space / ↑ / W: Jump</div>
+              {isMobile ? (
+                <>
+                  <div>Tap left side: Move Left</div>
+                  <div>Tap right side: Move Right</div>
+                  <div>Tap bottom: Jump</div>
+                </>
+              ) : (
+                <>
+                  <div>← → / A D: Move</div>
+                  <div>Space / ↑ / W: Jump</div>
+                </>
+              )}
               <div>Jump over or dodge obstacles!</div>
             </div>
           </div>
         </div>
       )}
 
+      {gameStarted && !gameOver && isMobile && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-0 top-0 w-1/3 h-full opacity-20 bg-blue-500 pointer-events-auto" />
+          <div className="absolute right-0 top-0 w-1/3 h-full opacity-20 bg-blue-500 pointer-events-auto" />
+          <div className="absolute bottom-0 left-0 w-full h-1/3 opacity-20 bg-green-500 pointer-events-auto" />
+        </div>
+      )}
+
       {!gameStarted && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4">
-            <h1 className="text-4xl font-bold text-center mb-6 text-gray-800">
+          <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 max-w-2xl w-full mx-2 sm:mx-4">
+            <h1 className="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
               🥚 Egg Bounce Adventure
             </h1>
             
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Choose Your Egg</h2>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4 text-gray-700">Choose Your Egg</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {eggs.map((egg) => (
                   <button
                     key={egg.name}
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                    className={`p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${
                       selectedEgg.name === egg.name 
                         ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105' 
                         : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                     }`}
                     onClick={() => setSelectedEgg(egg)}
                   >
-                    <div className="font-semibold text-gray-800">{egg.name}</div>
+                    <div className="font-semibold text-gray-800 text-sm sm:text-base">{egg.name}</div>
                     <div className="text-xs text-gray-600 mt-1">{egg.description}</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Select Arena</h2>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-4 text-gray-700">Select Arena</h2>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {maps.map((map) => (
                   <button
                     key={map.name}
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                    className={`p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${
                       selectedMap.name === map.name 
                         ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105' 
                         : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                     }`}
                     onClick={() => setSelectedMap(map)}
                   >
-                    <div className="font-semibold text-gray-800">{map.name}</div>
+                    <div className="font-semibold text-gray-800 text-sm sm:text-base">{map.name}</div>
                     <div className="text-xs text-gray-600 mt-1">{map.description}</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={startGame}
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
               >
                 Start Adventure
               </button>
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
-                className="px-8 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200"
+                className="px-4 sm:px-8 py-2 sm:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 text-sm sm:text-base"
               >
                 {showInstructions ? 'Hide' : 'Show'} Instructions
               </button>
             </div>
 
             {showInstructions && (
-              <div className="mt-6 p-4 bg-gray-500 rounded-lg text-gray-800">
-                <h3 className="text-lg font-semibold mb-2">How to Play</h3>
-                <p className="text-sm">
-                  Use the arrow keys or A/D to move left and right. Press Space, Up, or W to jump over obstacles.
-                  Collect points by dodging or jumping over obstacles. The game speeds up as you score more points!
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-500 rounded-lg text-gray-800">
+                <h3 className="text-base sm:text-lg font-semibold mb-2">How to Play</h3>
+                <p className="text-xs sm:text-sm">
+                  {isMobile ? (
+                    <>
+                      Tap left side to move left, right side to move right, and bottom to jump.
+                      Dodge or jump over obstacles to score points. The game speeds up as you score!
+                    </>
+                  ) : (
+                    <>
+                      Use arrow keys or A/D to move left and right. Press Space, Up, or W to jump over obstacles.
+                      Collect points by dodging or jumping over obstacles. The game speeds up as you score more points!
+                    </>
+                  )}
                 </p>
               </div>
             )}
@@ -705,19 +794,19 @@ const EggBounceGame: React.FC = () => {
 
       {gameOver && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
-            <h2 className="text-3xl font-bold text-red-600 mb-4">🥚💥 Egg Smashed!</h2>
-            <div className="mb-6">
-              <div className="text-2xl font-semibold text-gray-800 mb-2">Final Score: {score}</div>
+          <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 max-w-md w-full mx-2 sm:mx-4 text-center">
+            <h2 className="text-xl sm:text-3xl font-bold text-red-600 mb-2 sm:mb-4">🥚💥 Egg Smashed!</h2>
+            <div className="mb-4 sm:mb-6">
+              <div className="text-lg sm:text-2xl font-semibold text-gray-800 mb-1 sm:mb-2">Final Score: {score}</div>
               {score > highScore && (
-                <div className="text-green-600 font-semibold">🎉 New High Score! 🎉</div>
+                <div className="text-green-600 font-semibold text-sm sm:text-base">🎉 New High Score! 🎉</div>
               )}
-              <div className="text-gray-600">Best: {highScore}</div>
+              <div className="text-gray-600 text-sm sm:text-base">Best: {highScore}</div>
             </div>
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={restartGame}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
               >
                 Play Again
               </button>
@@ -726,7 +815,7 @@ const EggBounceGame: React.FC = () => {
                   setGameStarted(false);
                   setGameOver(false);
                 }}
-                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200 text-sm sm:text-base"
               >
                 Main Menu
               </button>

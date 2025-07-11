@@ -1,8 +1,7 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Egg {
   id: number;
@@ -34,15 +33,39 @@ const EggCatcherGame: React.FC = () => {
   const [eggSpawnRate, setEggSpawnRate] = useState(0.02);
   const [nextEggId, setNextEggId] = useState(0);
   const [nextParticleId, setNextParticleId] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
-  const gameWidth = 500;
-  const gameHeight = 600;
+  // Responsive game dimensions
+  const [gameWidth, setGameWidth] = useState(500);
+  const [gameHeight, setGameHeight] = useState(600);
   const numColumns = 5;
   const columnWidth = gameWidth / numColumns;
-  const basketWidth = 50;
-  const basketHeight = 40;
-  const eggSize = 24;
+  const basketWidth = Math.max(40, gameWidth * 0.1);
+  const basketHeight = Math.max(32, gameWidth * 0.08);
+  const eggSize = Math.max(20, gameWidth * 0.048);
   const basketX = (basketColumn + 0.5) * columnWidth;
+
+  // Check if device is mobile and set dimensions
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      if (mobile) {
+        const maxWidth = Math.min(window.innerWidth - 40, 400);
+        setGameWidth(maxWidth);
+        setGameHeight(Math.floor(maxWidth * 1.4));
+      } else {
+        setGameWidth(500);
+        setGameHeight(600);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const createParticles = useCallback((x: number, y: number, color: string, count: number = 8) => {
     const newParticles: Particle[] = [];
@@ -92,7 +115,7 @@ const EggCatcherGame: React.FC = () => {
       eggBottom >= basketTop &&
       eggBottom <= gameHeight - 20
     );
-  }, [basketX]);
+  }, [basketX, basketWidth, basketHeight, gameHeight, eggSize]);
 
   const gameLoop = useCallback(() => {
     if (!gameRunning || gameOver) return;
@@ -160,7 +183,7 @@ const EggCatcherGame: React.FC = () => {
         setEggSpawnRate(prev => Math.min(prev + 0.005, 0.08));
       }
     }
-  }, [gameRunning, gameOver, spawnEgg, checkCollision, createParticles, score, level]);
+  }, [gameRunning, gameOver, spawnEgg, checkCollision, createParticles, score, level, gameHeight, eggSize]);
 
   // Game loop
   useEffect(() => {
@@ -198,6 +221,55 @@ const EggCatcherGame: React.FC = () => {
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [gameRunning, numColumns]);
+
+  // Touch controls
+  const handleDirectionMove = (direction: 'left' | 'right') => {
+    if (!gameRunning) return;
+    
+    if (direction === 'left') {
+      setBasketColumn(prev => Math.max(0, prev - 1));
+    } else {
+      setBasketColumn(prev => Math.min(numColumns - 1, prev + 1));
+    }
+  };
+
+  // Swipe detection for mobile
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd || !gameRunning) return;
+    
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
+    const minSwipeDistance = 50;
+    
+    if (isHorizontalSwipe && Math.abs(distanceX) > minSwipeDistance) {
+      if (distanceX > 0) {
+        // Swipe left
+        setBasketColumn(prev => Math.max(0, prev - 1));
+      } else {
+        // Swipe right
+        setBasketColumn(prev => Math.min(numColumns - 1, prev + 1));
+      }
+    }
+  };
 
   const startGame = () => {
     setScore(0);
@@ -242,29 +314,33 @@ const EggCatcherGame: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl p-6 max-w-4xl w-full relative">
-        <Link href="/dashboard" passHref>
-          <Button variant="ghost" className="absolute top-6 left-6 text-white hover:bg-gray-700 hover:text-white">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black p-2 sm:p-4">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg shadow-2xl p-3 sm:p-6 max-w-4xl w-full relative">
+        <Button 
+          variant="ghost" 
+          className="absolute top-3 left-3 sm:top-6 sm:left-6 text-white hover:bg-gray-700 hover:text-white text-xs sm:text-sm"
+        >
+          <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          Back
+        </Button>
 
-        <h1 className="text-4xl font-bold text-center mb-6 text-white pt-8 md:pt-0">
-          🥚 <span className="text-pink-400">Egg Catcher</span> Game 🧺
+        <h1 className="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-white pt-12 sm:pt-8 md:pt-0">
+          🥚 <span className="text-pink-400">Egg Catcher</span> 🧺
         </h1>
         
-        <div className="flex justify-center gap-8 mb-4">
-          <div className="text-xl font-semibold text-pink-400">Score: {score}</div>
-          <div className="text-xl font-semibold text-pink-300">Lives: {lives}</div>
-          <div className="text-xl font-semibold text-pink-500">Level: {level}</div>
+        <div className="flex justify-center gap-4 sm:gap-8 mb-4 text-sm sm:text-xl">
+          <div className="font-semibold text-pink-400">Score: {score}</div>
+          <div className="font-semibold text-pink-300">Lives: {lives}</div>
+          <div className="font-semibold text-pink-500">Level: {level}</div>
         </div>
 
         <div 
-          id="game-container"
-          className="relative mx-auto border-4 border-pink-400 rounded-lg overflow-hidden bg-gradient-to-b from-gray-800 to-gray-900"
+          ref={gameContainerRef}
+          className="relative mx-auto border-2 sm:border-4 border-pink-400 rounded-lg overflow-hidden bg-gradient-to-b from-gray-800 to-gray-900 select-none"
           style={{ width: gameWidth, height: gameHeight }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Game elements */}
           {gameRunning && (
@@ -273,11 +349,12 @@ const EggCatcherGame: React.FC = () => {
               {eggs.map(egg => (
                 <div
                   key={egg.id}
-                  className="absolute text-2xl transition-all duration-75"
+                  className="absolute transition-all duration-75 pointer-events-none"
                   style={{
                     left: egg.x,
                     top: egg.y,
                     color: getEggColor(egg.type),
+                    fontSize: `${eggSize}px`,
                     filter: egg.type === 'golden' ? 'drop-shadow(0 0 8px #FFD700)' : 
                            egg.type === 'rotten' ? 'drop-shadow(0 0 4px #8B4513)' : 'none'
                   }}
@@ -290,7 +367,7 @@ const EggCatcherGame: React.FC = () => {
               {particles.map(particle => (
                 <div
                   key={particle.id}
-                  className="absolute w-2 h-2 rounded-full"
+                  className="absolute w-2 h-2 rounded-full pointer-events-none"
                   style={{
                     left: particle.x,
                     top: particle.y,
@@ -302,11 +379,12 @@ const EggCatcherGame: React.FC = () => {
 
               {/* Basket */}
               <div
-                className="absolute bottom-5 text-4xl transition-all duration-75"
-                style={{ // The basket's x position is now calculated from its column
+                className="absolute bottom-5 transition-all duration-75 pointer-events-none"
+                style={{
                   left: basketX - basketWidth / 2,
                   width: basketWidth,
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  fontSize: `${basketWidth * 0.8}px`
                 }}
               >
                 🧺
@@ -317,18 +395,18 @@ const EggCatcherGame: React.FC = () => {
           {/* Game states */}
           {!gameRunning && !gameOver && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
-              <div className="text-center text-white">
-                <h2 className="text-3xl font-bold mb-4 text-pink-400">🥚 Egg Catcher 🧺</h2>
-                <p className="text-lg mb-6 text-gray-300">
+              <div className="text-center text-white px-4">
+                <h2 className="text-xl sm:text-3xl font-bold mb-4 text-pink-400">🥚 Egg Catcher 🧺</h2>
+                <p className="text-sm sm:text-lg mb-6 text-gray-300">
                   Catch the falling eggs with your basket!<br/>
                   🥚 Normal eggs: <span className="text-pink-300">+10 points</span><br/>
                   🥚 Golden eggs: <span className="text-pink-400">+50 points</span><br/>
                   🥚 Rotten eggs: <span className="text-pink-200">-1 life</span><br/>
-                  Use arrow keys (or A/D) to move
+                  {isMobile ? 'Swipe left/right or use buttons' : 'Use arrow keys (or A/D) to move'}
                 </p>
                 <button
                   onClick={startGame}
-                  className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors border border-pink-400"
+                  className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg text-lg sm:text-xl transition-colors border border-pink-400"
                 >
                   Start Game
                 </button>
@@ -338,20 +416,20 @@ const EggCatcherGame: React.FC = () => {
 
           {gameOver && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
-              <div className="text-center text-white">
-                <h2 className="text-3xl font-bold mb-4 text-pink-400">Game Over!</h2>
-                <p className="text-xl mb-2 text-pink-300">Final Score: {score}</p>
-                <p className="text-lg mb-6 text-gray-300">Level Reached: {level}</p>
-                <div className="space-x-4">
+              <div className="text-center text-white px-4">
+                <h2 className="text-xl sm:text-3xl font-bold mb-4 text-pink-400">Game Over!</h2>
+                <p className="text-lg sm:text-xl mb-2 text-pink-300">Final Score: {score}</p>
+                <p className="text-sm sm:text-lg mb-6 text-gray-300">Level Reached: {level}</p>
+                <div className="space-y-2 sm:space-y-0 sm:space-x-4 flex flex-col sm:flex-row">
                   <button
                     onClick={startGame}
-                    className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors border border-pink-400"
+                    className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg text-lg sm:text-xl transition-colors border border-pink-400"
                   >
                     Play Again
                   </button>
                   <button
                     onClick={resetGame}
-                    className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors border border-gray-400"
+                    className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg text-lg sm:text-xl transition-colors border border-gray-400"
                   >
                     Main Menu
                   </button>
@@ -361,9 +439,27 @@ const EggCatcherGame: React.FC = () => {
           )}
         </div>
 
-        <div className="mt-6 text-center text-gray-400">
-          <p className="text-sm">
-            🎮 Controls: Arrow Keys (A/D) • 
+        {/* Mobile control buttons */}
+        {isMobile && gameRunning && (
+          <div className="flex justify-center gap-4 mt-4">
+            <button
+              onClick={() => handleDirectionMove('left')}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors border border-pink-400 flex items-center active:scale-95"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => handleDirectionMove('right')}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors border border-pink-400 flex items-center active:scale-95"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 sm:mt-6 text-center text-gray-400">
+          <p className="text-xs sm:text-sm">
+            🎮 {isMobile ? 'Swipe or tap buttons to move' : 'Controls: Arrow Keys (A/D)'} • 
             Avoid rotten eggs! • 
             Catch golden eggs for bonus points!
           </p>
