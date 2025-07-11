@@ -5,12 +5,13 @@ import { QuizModule } from "@/components/quiz-module";
 import { quizData } from "@/lib/quiz-data";
 
 type QuizPageProps = {
-  params: { quizId: string };
+  params: Promise<{ quizId: string }>;
 };
 
-const QuizPage: NextPage<QuizPageProps> = ({ params }) => {
-  const data = quizData[params.quizId];
-
+const QuizPage: NextPage<QuizPageProps> = async ({ params }) => {
+  const { quizId } = await params;
+  const data = quizData[quizId];
+  
   if (!data) {
     notFound();
   }
