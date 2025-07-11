@@ -3,12 +3,8 @@ import { Header } from "@/components/header";
 import { QuizModule } from "@/components/quiz-module";
 import { quizData } from "@/lib/quiz-data";
 
-interface QuizPageProps {
-  params: { quizId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function QuizPage({ params }: QuizPageProps) {
+// Remove the interface and destructure params directly
+export default function QuizPage({ params }: { params: { quizId: string } }) {
   const data = quizData[params.quizId];
 
   if (!data) {
