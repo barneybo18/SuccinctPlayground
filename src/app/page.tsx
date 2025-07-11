@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
 import { motion, Variants } from "framer-motion";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut} from "@clerk/nextjs";
 import Link from "next/link";
 import {
   Sparkles,

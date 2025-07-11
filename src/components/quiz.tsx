@@ -26,7 +26,7 @@ interface QuizProps {
   userId: string;
 }
 
-export function Quiz({ questions, lessonId, userId }: QuizProps) {
+export function Quiz({ questions }: QuizProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [score, setScore] = useState(0);
