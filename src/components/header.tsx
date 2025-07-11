@@ -6,7 +6,7 @@ export function Header() {
   return (
     <header className="w-full p-4 px-8 flex justify-between items-center border-b">
       <Link href="/" className="text-2xl font-bold tracking-tighter">
-        ZK Playground
+        Succinct Playground
       </Link>
       <div>
         <SignedIn>

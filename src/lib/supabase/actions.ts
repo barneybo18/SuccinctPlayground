@@ -1,44 +1,104 @@
 "use server";
 
-import { createClient } from "./server";
+import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-interface QuizQuestion {
+// Define types for our data
+export interface Question {
   question: string;
   options: string[];
   answer: string;
 }
 
-interface LessonData {
+export interface Lesson {
+  id: number;
+  created_at: string;
   title: string;
   description: string;
   reading_material: string;
-  quiz_questions: QuizQuestion[];
+  quiz_questions: Question[];
 }
 
-export async function uploadLesson(lessonData: LessonData) {
+export type LessonFormData = Omit<Lesson, "id" | "created_at">;
+
+// Action to upload a new lesson
+export async function uploadLesson(lessonData: LessonFormData) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("lessons").insert([lessonData]);
+  const { data, error } = await supabase
+    .from("lessons")
+    .insert([lessonData])
+    .select();
 
   if (error) {
     console.error("Error uploading lesson:", error);
-    return { error: "Could not upload lesson." };
+    return { success: false, error: error.message };
   }
 
-  revalidatePath("/dashboard");
+  revalidatePath("/admin");
+  return { success: true, data };
+}
+
+// Action to get all lessons
+export async function getLessons(): Promise<Lesson[]> {
+  const supabase = await createClient();
+  const { data: lessons, error } = await supabase
+    .from("lessons")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching lessons:", error);
+    return [];
+  }
+
+  return lessons || [];
+}
+
+// Action to get a single lesson by ID
+export async function getLessonById(lessonId: string) {
+  // Query Supabase with lessonId as a string (UUID)
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("*")
+    .eq("id", lessonId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+// Action to update a lesson
+export async function updateLesson(lessonId: number, lessonData: LessonFormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("lessons")
+    .update(lessonData)
+    .eq("id", lessonId);
+
+  if (error) {
+    console.error(`Error updating lesson ${lessonId}:`, error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/edit/${lessonId}`);
   return { success: true };
 }
 
-export async function completeQuiz(lessonId: string, userId: string, score: number, totalQuestions: number) {
-    const supabase = await createClient();
-    // Using upsert to either create or update the user's progress for a specific lesson
-    const { error } = await supabase.from('user_progress').upsert({
-        user_id: userId,
-        lesson_id: lessonId, // You may need to add this column to your 'user_progress' table
-        status: 'completed',
-        score: score,
-    }, { onConflict: 'user_id, lesson_id' });
+// Action to delete a lesson
+export async function deleteLesson(lessonId: number) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
 
-    if (error) console.error('Error updating progress:', error);
-    revalidatePath('/dashboard');
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
 }

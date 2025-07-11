@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Chat } from "@/components/chat";
+// import { Chat } from "@/components/chat";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Mock data for the learning games
@@ -42,6 +42,12 @@ const gameModules = [
     description:
       "Prove your knowledge about the Succinct team and their contributions to ZK.",
     href: "/games/succinctTeam",
+  },
+  {
+    title: "Succinct EGG 3D-dash",
+    description:
+      "Just a fun 3D game where you dash through obstacles and collect eggs. i am not sure how this relates to ZK, but it is fun.",
+    href: "/games/threeDEgg",
   },
 ];
 

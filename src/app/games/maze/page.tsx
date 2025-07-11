@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Settings, Zap, Target, Clock, Trophy, ArrowLeft } from 'lucide-react';
+import { RotateCcw, Settings, Zap, Target, Clock, Trophy, ArrowLeft } from 'lucide-react';
 
 const Maze = () => {
   const [mazeSize, setMazeSize] = useState(21);
@@ -158,7 +158,7 @@ const Maze = () => {
 
     while (openSet.length > 0) {
       openSet.sort((a, b) => a[3] - b[3]);
-      const [currentRow, currentCol, currentG, currentF] = openSet.shift() as [number, number, number, number];
+      const [currentRow, currentCol] = openSet.shift() as [number, number, number, number];
 
       if (currentRow === endRow && currentCol === endCol) {
         // Reconstruct path
@@ -440,7 +440,7 @@ const Maze = () => {
                   className="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white"
                 >
                   <option value="recursive">Recursive Backtracking</option>
-                  <option value="prim">Prim's Algorithm</option>
+                  <option value="prim">Prim Algorithm</option>
                 </select>
               </div>
               
@@ -452,7 +452,7 @@ const Maze = () => {
                   className="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white"
                 >
                   <option value="astar">A* Search</option>
-                  <option value="dijkstra">Dijkstra's Algorithm</option>
+                  <option value="dijkstra">Dijkstra Algorithm</option>
                 </select>
               </div>
               

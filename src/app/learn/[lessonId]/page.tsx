@@ -33,7 +33,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   }
 
   // The quiz questions are stored as JSONB in Supabase
-  const quizQuestions = (lesson.quiz_questions as any) || [];
+  const quizQuestions = (lesson.quiz_questions) || [];
 
 
   return (

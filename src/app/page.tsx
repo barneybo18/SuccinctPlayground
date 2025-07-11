@@ -114,8 +114,8 @@ export default function Home() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
 
@@ -325,7 +325,7 @@ export default function Home() {
               className="text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-white to-purple-400"
               variants={FADE_IN_ANIMATION_VARIANTS}
             >
-              ZK Learning Playground
+              Succinct Playground
             </motion.h1>
 
             <motion.p
@@ -334,7 +334,7 @@ export default function Home() {
             >
               An interactive educational platform where you can visualize how
               zero-knowledge proofs work. Think of it as
-              <span className="text-pink-400 font-medium"> "ZK proofs explained through games"</span>.
+              <span className="text-pink-400 font-medium"> ZK proofs explained through games</span>.
             </motion.p>
 
             <motion.div variants={FADE_IN_ANIMATION_VARIANTS}>
@@ -344,7 +344,7 @@ export default function Home() {
                   asChild
                   className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
                 >
-                  <Link href="/dashboard">Start Learning</Link>
+                  <Link href="/dashboard">Explore!</Link>
                 </Button>
               </SignedIn>
 
@@ -354,7 +354,7 @@ export default function Home() {
                     size="lg"
                     className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
                   >
-                    Get Started for Free
+                    Get Started
                   </Button>
                 </SignInButton>
               </SignedOut>
@@ -365,7 +365,7 @@ export default function Home() {
               className="flex items-center space-x-2 text-sm text-muted-foreground mt-4"
             >
               <Sparkles className="text-pink-400 animate-bounce" size={16} />
-              <span>Built for the ZK curious 💡 — by the Succinct fam</span>
+              <span>Built for the Succinct community by the @oboh_banny18</span>
             </motion.div>
           </motion.div>
         </main>

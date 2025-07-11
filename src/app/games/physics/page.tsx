@@ -18,7 +18,7 @@ export default function PhysicsPlayground() {
   const [isMouseEnabled, setIsMouseEnabled] = useState(true);
   const [selectedTool, setSelectedTool] = useState<string>('box');
   const [isPaused, setIsPaused] = useState(false);
-  const [showTrails, setShowTrails] = useState(false);
+ 
 
   useEffect(() => {
     const Engine = Matter.Engine,
@@ -119,8 +119,7 @@ export default function PhysicsPlayground() {
   }, [isPaused]);
 
   const addObjectAtPosition = (x: number, y: number) => {
-    const Bodies = Matter.Bodies,
-      Composite = Matter.Composite;
+    const Bodies = Matter.Bodies;
 
     let body;
     const colors = ['#00e0ff', '#ffaa00', '#ff007f', '#00ff88', '#ff4444', '#8844ff'];

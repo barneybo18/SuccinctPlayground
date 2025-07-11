@@ -23,55 +23,12 @@ export default async function DashboardPage() {
     return <div>Error loading lessons.</div>;
   }
 
-  // 2. Fetch the user's progress for all lessons
-  const { data: userProgress, error: progressError } = await supabase
-    .from("user_progress")
-    .select("lesson_id, status")
-    .eq("user_id", userId);
-
-  if (progressError) {
-    console.error("Error fetching user progress:", progressError);
-  }
-
-  const completedLessons = new Set(
-    userProgress?.filter((p) => p.status === "completed").map((p) => p.lesson_id)
-  );
-
-  // 3. Combine lessons with progress to determine the status for each module
-  // A lesson is unlocked if the previous one has been completed.
+  // With progress tracking removed, all lessons are now available to start.
   const learningModules =
-    allLessons?.map((lesson, index) => {
-      const isCompleted = completedLessons.has(lesson.id);
-      let isUnlocked = false;
-
-      // The first lesson is always unlocked.
-      if (index === 0) {
-        isUnlocked = true;
-      } else {
-        // A lesson is unlocked if the previous one is completed.
-        const previousLesson = allLessons?.[index - 1];
-        if (previousLesson && completedLessons.has(previousLesson.id)) {
-          isUnlocked = true;
-        }
-      }
-
-      let status: "Not Started" | "Completed" | "Locked" = "Locked";
-      if (isCompleted) {
-        status = "Completed";
-      } else if (isUnlocked) {
-        status = "Not Started";
-      }
-
-      return {
-        ...lesson,
-        status,
-      };
-    }) || [];
-
-  const progress = {
-    completed_modules: completedLessons.size,
-    total_modules: allLessons?.length || 0,
-  };
+    allLessons?.map((lesson) => ({
+      ...lesson,
+      status: "Not Started" as "Not Started",
+    })) || [];
 
   return <DashboardClient lessons={learningModules} />;
 }

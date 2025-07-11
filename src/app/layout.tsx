@@ -7,7 +7,7 @@ import { dark } from "@clerk/themes";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ZK Learning Playground",
+  title: "Succinct Playground",
   description: "Learn Zero-Knowledge Proofs through interactive games.",
 };
 
