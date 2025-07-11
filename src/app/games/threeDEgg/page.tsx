@@ -72,9 +72,12 @@ const EggBounceGame: React.FC = () => {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
-  const [gameSpeed, setGameSpeed] = useState(1);
+  const [gameSpeed, setGameSpeed] = useState(1.5); // Faster base speed
   const [showInstructions, setShowInstructions] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [leftTouchActive, setLeftTouchActive] = useState(false);
+  const [rightTouchActive, setRightTouchActive] = useState(false);
+  const [jumpTouchActive, setJumpTouchActive] = useState(false);
 
   const gameStateRef = useRef({
     scene: null as THREE.Scene | null,
@@ -86,7 +89,7 @@ const EggBounceGame: React.FC = () => {
     rightBorder: null as THREE.Mesh | null,
     obstacles: [] as THREE.Mesh[],
     scenery: [] as THREE.Mesh[],
-    eggVelocity: new THREE.Vector3(0, 0, -0.1),
+    eggVelocity: new THREE.Vector3(0, 0, -0.15), // Faster forward speed
     eggPosition: new THREE.Vector3(0, 0.5, 0),
     keys: {} as { [key: string]: boolean },
     touches: {} as { [key: string]: boolean },
@@ -98,6 +101,7 @@ const EggBounceGame: React.FC = () => {
     frameCount: 0,
     cameraTarget: new THREE.Vector3(0, 4, 6),
     smoothCameraPosition: new THREE.Vector3(0, 4, 6),
+    stumbleFrames: 0,
   });
 
   const createObstacleGeometry = (type: string): THREE.BufferGeometry => {
@@ -243,13 +247,14 @@ const EggBounceGame: React.FC = () => {
   const resetGame = useCallback(() => {
     setScore(0);
     setGameOver(false);
-    setGameSpeed(1);
+    setGameSpeed(1.5); // Faster base speed
     
     if (gameStateRef.current.egg) {
       gameStateRef.current.eggPosition.set(0, 0.5, 0);
-      gameStateRef.current.eggVelocity.set(0, 0, -0.1);
+      gameStateRef.current.eggVelocity.set(0, 0, -0.15); // Faster forward speed
       gameStateRef.current.egg.position.copy(gameStateRef.current.eggPosition);
       gameStateRef.current.isJumping = false;
+      gameStateRef.current.stumbleFrames = 0;
     }
     
     // Clean up obstacles properly
@@ -304,7 +309,7 @@ const EggBounceGame: React.FC = () => {
     directionalLight.shadow.camera.far = 50;
     scene.add(directionalLight);
 
-    const pathGeometry = new THREE.PlaneGeometry(5, 400);
+    const pathGeometry = new THREE.PlaneGeometry(4, 400); // Narrower path
     const pathMaterial = new THREE.MeshLambertMaterial({ 
       color: selectedMap.pathColor,
       transparent: true,
@@ -321,12 +326,12 @@ const EggBounceGame: React.FC = () => {
     const borderMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
     
     const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
-    leftBorder.position.set(-2.6, 0, -100);
+    leftBorder.position.set(-2.1, 0, -100); // Tighter borders
     leftBorder.castShadow = true;
     scene.add(leftBorder);
     
     const rightBorder = new THREE.Mesh(borderGeometry, borderMaterial);
-    rightBorder.position.set(2.6, 0, -100);
+    rightBorder.position.set(2.1, 0, -100); // Tighter borders
     rightBorder.castShadow = true;
     scene.add(rightBorder);
 
@@ -357,7 +362,7 @@ const EggBounceGame: React.FC = () => {
       rightBorder,
       obstacles: [],
       scenery: sceneryObjects,
-      eggVelocity: new THREE.Vector3(0, 0, -0.1),
+      eggVelocity: new THREE.Vector3(0, 0, -0.15), // Faster forward speed
       eggPosition: new THREE.Vector3(0, 0.5, 0),
       keys: {},
       touches: {},
@@ -369,6 +374,7 @@ const EggBounceGame: React.FC = () => {
       frameCount: 0,
       cameraTarget: new THREE.Vector3(0, 4, 6),
       smoothCameraPosition: new THREE.Vector3(0, 4, 6),
+      stumbleFrames: 0,
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -389,14 +395,17 @@ const EggBounceGame: React.FC = () => {
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
-        // Define touch zones
-        if (touchX < windowWidth * 0.33) {
+        // Smaller touch zones for precision
+        if (touchX < windowWidth * 0.3) {
           gameStateRef.current.touches['left'] = true;
-        } else if (touchX > windowWidth * 0.66) {
+          setLeftTouchActive(true);
+        } else if (touchX > windowWidth * 0.7) {
           gameStateRef.current.touches['right'] = true;
+          setRightTouchActive(true);
         }
-        if (touchY > windowHeight * 0.66) {
+        if (touchY > windowHeight * 0.7) {
           gameStateRef.current.touches['jump'] = true;
+          setJumpTouchActive(true);
         }
       }
     };
@@ -411,13 +420,16 @@ const EggBounceGame: React.FC = () => {
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
-        if (touchX < windowWidth * 0.33) {
+        if (touchX < windowWidth * 0.3) {
           gameStateRef.current.touches['left'] = false;
-        } else if (touchX > windowWidth * 0.66) {
+          setLeftTouchActive(false);
+        } else if (touchX > windowWidth * 0.7) {
           gameStateRef.current.touches['right'] = false;
+          setRightTouchActive(false);
         }
-        if (touchY > windowHeight * 0.66) {
+        if (touchY > windowHeight * 0.7) {
           gameStateRef.current.touches['jump'] = false;
+          setJumpTouchActive(false);
         }
       }
     };
@@ -460,23 +472,30 @@ const EggBounceGame: React.FC = () => {
         eggVelocity, 
         eggPosition,
         cameraTarget,
-        smoothCameraPosition
+        smoothCameraPosition,
+        stumbleFrames
       } = gameStateRef.current;
       
       if (!egg || !camera || !renderer || !scene || !path || !leftBorder || !rightBorder) return;
 
-      const gravity = -0.012;
+      const gravity = -0.015; // Stronger gravity
       const friction = 0.96;
       const lateralSpeed = 0.08;
       const jumpForce = 0.18;
       const groundLevel = 0.3;
-      const forwardSpeed = -0.1;
+      const forwardSpeed = -0.15; // Faster forward speed
+
+      // Handle stumble effect
+      let stumbleMultiplier = stumbleFrames > 0 ? 0.5 : 1; // Slow down during stumble
+      if (stumbleFrames > 0) {
+        gameStateRef.current.stumbleFrames--;
+      }
 
       // Handle input (keyboard and touch)
-      if (keys['ArrowLeft'] || keys['KeyA'] || touches['left']) {
+      if ((keys['ArrowLeft'] || keys['KeyA'] || touches['left']) && stumbleFrames === 0) {
         eggVelocity.x -= lateralSpeed * deltaTime * 60;
       }
-      if (keys['ArrowRight'] || keys['KeyD'] || touches['right']) {
+      if ((keys['ArrowRight'] || keys['KeyD'] || touches['right']) && stumbleFrames === 0) {
         eggVelocity.x += lateralSpeed * deltaTime * 60;
       }
       if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touches['jump']) && eggPosition.y <= groundLevel + 0.1) {
@@ -487,7 +506,7 @@ const EggBounceGame: React.FC = () => {
       // Apply physics
       eggVelocity.y += gravity * deltaTime * 60;
       eggVelocity.x *= Math.pow(friction, deltaTime * 60);
-      eggVelocity.z = forwardSpeed;
+      eggVelocity.z = forwardSpeed * stumbleMultiplier;
 
       eggPosition.add(eggVelocity.clone().multiplyScalar(deltaTime * 60));
 
@@ -500,19 +519,20 @@ const EggBounceGame: React.FC = () => {
         }
       }
 
-      // Boundary constraints
-      eggPosition.x = Math.max(-2.2, Math.min(2.2, eggPosition.x));
+      // Tighter boundary constraints
+      eggPosition.x = Math.max(-1.8, Math.min(1.8, eggPosition.x));
 
       // Update egg position and rotation
       egg.position.copy(eggPosition);
       egg.rotation.x += eggVelocity.y * 0.1;
       egg.rotation.z += eggVelocity.x * 0.05;
 
-      // Smooth camera following
+      // Smooth camera following with shake effect
+      const shakeIntensity = stumbleFrames > 0 ? 0.1 : 0;
       cameraTarget.set(
-        eggPosition.x * 0.3,
-        eggPosition.y + 4,
-        eggPosition.z + 8
+        eggPosition.x * 0.3 + (Math.random() - 0.5) * shakeIntensity,
+        eggPosition.y + 4 + (Math.random() - 0.5) * shakeIntensity,
+        eggPosition.z + 8 + (Math.random() - 0.5) * shakeIntensity
       );
       
       // Smooth camera interpolation
@@ -520,19 +540,28 @@ const EggBounceGame: React.FC = () => {
       camera.position.copy(smoothCameraPosition);
       camera.lookAt(eggPosition.x, eggPosition.y + 0.5, eggPosition.z);
 
-      // Spawn obstacles with better timing
-      if (gameStateRef.current.frameCount % Math.max(90 - Math.floor(gameSpeed * 10), 30) === 0) {
-        if (Math.random() < 0.6) {
+      // Update fog based on speed
+      scene.fog = new THREE.Fog(selectedMap.backgroundColor, 8, 30 - gameSpeed * 2);
+
+      // Spawn obstacles more frequently
+      if (gameStateRef.current.frameCount % Math.max(60 - Math.floor(gameSpeed * 8), 20) === 0) {
+        const spawnMultiple = Math.random() < 0.3 && gameSpeed > 2; // 30% chance for multiple obstacles at higher speeds
+        const obstacleCount = spawnMultiple ? 2 : 1;
+        
+        for (let i = 0; i < obstacleCount; i++) {
           const obstacleType = selectedMap.obstacleTypes[Math.floor(Math.random() * selectedMap.obstacleTypes.length)];
           const obstacleGeometry = createObstacleGeometry(obstacleType);
+          // Scale obstacles based on gameSpeed
+          const scale = 1 + gameSpeed * 0.1;
+          obstacleGeometry.scale(scale, scale, scale);
           const obstacleMaterial = new THREE.MeshLambertMaterial({ 
             color: Math.random() * 0xffffff
           });
           const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
           
           obstacle.position.set(
-            (Math.random() - 0.5) * 3.5,
-            groundLevel + 0.2,
+            spawnMultiple ? (i === 0 ? -1 : 1) * 1.5 : (Math.random() - 0.5) * 3,
+            groundLevel + 0.2 + Math.random() * 0.3, // Random vertical offset
             eggPosition.z - 25
           );
           obstacle.castShadow = true;
@@ -540,7 +569,8 @@ const EggBounceGame: React.FC = () => {
             type: obstacleType,
             hasBeenPassed: false,
             fadeOut: false,
-            opacity: 1
+            opacity: 1,
+            verticalSpeed: (Math.random() - 0.5) * 0.02 // Random vertical motion
           };
           scene.add(obstacle);
           obstacles.push(obstacle);
@@ -551,24 +581,28 @@ const EggBounceGame: React.FC = () => {
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const obstacle = obstacles[i];
         obstacle.position.z += 0.12 * gameSpeed * deltaTime * 60;
+        obstacle.position.y += obstacle.userData.verticalSpeed * deltaTime * 60;
         obstacle.rotation.x += 0.02 * deltaTime * 60;
         obstacle.rotation.y += 0.03 * deltaTime * 60;
 
-        // Collision detection
+        // Collision detection with stumble mechanic
         const distance = egg.position.distanceTo(obstacle.position);
-        if (distance < 0.7) {
+        if (distance < 0.6) { // Tighter collision
           gameStateRef.current.gameRunning = false;
           setGameOver(true);
           setHighScore(prev => Math.max(prev, score));
           createEggBreakEffect(egg.position, selectedEgg.color);
           return;
+        } else if (distance < 0.9 && stumbleFrames === 0) { // Stumble zone
+          gameStateRef.current.stumbleFrames = 30; // Stumble for half a second
+          eggVelocity.x *= 0.5; // Slow lateral movement
         }
 
         // Check if obstacle has been passed
         if (!obstacle.userData.hasBeenPassed && obstacle.position.z > eggPosition.z + 2) {
           obstacle.userData.hasBeenPassed = true;
-          setScore(prev => prev + 10);
-          setGameSpeed(prev => Math.min(prev * 1.5, 5)); // Increase speed by 1.5x, cap at 5x
+          setScore(prev => prev + 5); // Reduced points for more challenge
+          setGameSpeed(prev => Math.min(prev * 1.7, 7)); // Aggressive speed scaling
         }
 
         // Remove obstacles that are far behind
@@ -692,7 +726,7 @@ const EggBounceGame: React.FC = () => {
                   <div>Space / ↑ / W: Jump</div>
                 </>
               )}
-              <div>Jump over or dodge obstacles!</div>
+              <div>Survive the chaos!</div>
             </div>
           </div>
         </div>
@@ -700,9 +734,9 @@ const EggBounceGame: React.FC = () => {
 
       {gameStarted && !gameOver && isMobile && (
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute left-0 top-0 w-1/3 h-full opacity-10 bg-gray-300 pointer-events-auto" />
-          <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 bg-gray-300 pointer-events-auto" />
-          <div className="absolute bottom-0 left-0 w-full h-1/3 opacity-10 bg-gray-300 pointer-events-auto" />
+          <div className={`absolute left-0 top-0 w-[30%] h-full opacity-10 bg-gray-300 pointer-events-auto transition-opacity duration-200 ${leftTouchActive ? 'opacity-20' : ''}`} />
+          <div className={`absolute right-0 top-0 w-[30%] h-full opacity-10 bg-gray-300 pointer-events-auto transition-opacity duration-200 ${rightTouchActive ? 'opacity-20' : ''}`} />
+          <div className={`absolute bottom-0 left-0 w-full h-[30%] opacity-10 bg-gray-300 pointer-events-auto transition-opacity duration-200 ${jumpTouchActive ? 'opacity-20' : ''}`} />
         </div>
       )}
 
@@ -710,7 +744,7 @@ const EggBounceGame: React.FC = () => {
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 max-w-2xl w-full mx-2 sm:mx-4">
             <h1 className="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
-              🥚 Egg Bounce Adventure
+              🥚 Egg Bounce Hell
             </h1>
             
             <div className="mb-4 sm:mb-6">
@@ -756,9 +790,9 @@ const EggBounceGame: React.FC = () => {
             <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={startGame}
-                className="px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                className="px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-red-500 to-purple-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
               >
-                Start Adventure
+                Enter the Chaos
               </button>
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
@@ -770,17 +804,17 @@ const EggBounceGame: React.FC = () => {
 
             {showInstructions && (
               <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-500 rounded-lg text-gray-800">
-                <h3 className="text-base sm:text-lg font-semibold mb-2">How to Play</h3>
+                <h3 className="text-base sm:text-lg font-semibold mb-2">How to Survive</h3>
                 <p className="text-xs sm:text-sm">
                   {isMobile ? (
                     <>
-                      Tap left side to move left, right side to move right, and bottom to jump.
-                      Dodge or jump over obstacles to score points. The game speeds up as you score!
+                      Tap left side to move left, right side to move right, bottom to jump.
+                      Dodge or jump over relentless obstacles. Survive the escalating chaos!
                     </>
                   ) : (
                     <>
-                      Use arrow keys or A/D to move left and right. Press Space, Up, or W to jump over obstacles.
-                      Collect points by dodging or jumping over obstacles. The game speeds up as you score more points!
+                      Use arrow keys or A/D to move left and right. Press Space, Up, or W to jump.
+                      Survive the onslaught of obstacles as the game becomes brutally fast!
                     </>
                   )}
                 </p>
@@ -795,7 +829,7 @@ const EggBounceGame: React.FC = () => {
       {gameOver && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 max-w-md w-full mx-2 sm:mx-4 text-center">
-            <h2 className="text-xl sm:text-3xl font-bold text-red-600 mb-2 sm:mb-4">🥚💥 Egg Smashed!</h2>
+            <h2 className="text-xl sm:text-3xl font-bold text-red-600 mb-2 sm:mb-4">🥚💥 Egg Obliterated!</h2>
             <div className="mb-4 sm:mb-6">
               <div className="text-lg sm:text-2xl font-semibold text-gray-800 mb-1 sm:mb-2">Final Score: {score}</div>
               {score > highScore && (
@@ -806,9 +840,9 @@ const EggBounceGame: React.FC = () => {
             <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={restartGame}
-                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-red-500 to-purple-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg text-sm sm:text-base"
               >
-                Play Again
+                Try Again
               </button>
               <button
                 onClick={() => {
