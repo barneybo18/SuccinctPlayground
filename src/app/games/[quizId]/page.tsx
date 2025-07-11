@@ -1,10 +1,14 @@
+import { NextPage } from "next";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { QuizModule } from "@/components/quiz-module";
 import { quizData } from "@/lib/quiz-data";
 
-// Remove the interface and destructure params directly
-export default function QuizPage({ params }: { params: { quizId: string } }) {
+type QuizPageProps = {
+  params: { quizId: string };
+};
+
+const QuizPage: NextPage<QuizPageProps> = ({ params }) => {
   const data = quizData[params.quizId];
 
   if (!data) {
@@ -23,4 +27,6 @@ export default function QuizPage({ params }: { params: { quizId: string } }) {
       </main>
     </div>
   );
-}
+};
+
+export default QuizPage;
