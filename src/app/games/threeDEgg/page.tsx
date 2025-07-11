@@ -568,7 +568,7 @@ const EggBounceGame: React.FC = () => {
         if (!obstacle.userData.hasBeenPassed && obstacle.position.z > eggPosition.z + 2) {
           obstacle.userData.hasBeenPassed = true;
           setScore(prev => prev + 10);
-          setGameSpeed(prev => Math.min(prev + 0.015, 2.5));
+          setGameSpeed(prev => Math.min(prev * 1.5, 5)); // Increase speed by 1.5x, cap at 5x
         }
 
         // Remove obstacles that are far behind
@@ -700,9 +700,9 @@ const EggBounceGame: React.FC = () => {
 
       {gameStarted && !gameOver && isMobile && (
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute left-0 top-0 w-1/3 h-full opacity-20 bg-blue-500 pointer-events-auto" />
-          <div className="absolute right-0 top-0 w-1/3 h-full opacity-20 bg-blue-500 pointer-events-auto" />
-          <div className="absolute bottom-0 left-0 w-full h-1/3 opacity-20 bg-green-500 pointer-events-auto" />
+          <div className="absolute left-0 top-0 w-1/3 h-full opacity-10 bg-gray-300 pointer-events-auto" />
+          <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 bg-gray-300 pointer-events-auto" />
+          <div className="absolute bottom-0 left-0 w-full h-1/3 opacity-10 bg-gray-300 pointer-events-auto" />
         </div>
       )}
 
