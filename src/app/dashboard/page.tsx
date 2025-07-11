@@ -1,15 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
-import { auth } from "@clerk/nextjs/server";
 import { DashboardClient } from "@/components/dashboard-client";
-import { redirect } from "next/navigation";
+
+// Define the shape of the lesson module for the client component.
+// This ensures type safety and clarity between server and client.
+interface ClientLesson {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "Not Started" | "Completed" | "Locked";
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/");
-  }
 
   // 1. Fetch all lessons from the database
   const { data: allLessons, error: lessonsError } = await supabase
@@ -24,10 +26,11 @@ export default async function DashboardPage() {
   }
 
   // With progress tracking removed, all lessons are now available to start.
-  const learningModules =
+  const learningModules: ClientLesson[] =
     allLessons?.map((lesson) => ({
       ...lesson,
-      status: "Not Started" as "Not Started",
+      id: String(lesson.id), // Convert id to string to match ClientLesson
+      status: "Not Started", // This is now correctly typed via ClientLesson
     })) || [];
 
   return <DashboardClient lessons={learningModules} />;

@@ -63,7 +63,7 @@ export default async function AdminDashboard() {
               <div className="col-span-full text-center p-12 border-2 border-dashed rounded-lg">
                 <h3 className="text-xl font-semibold">No Lessons Found</h3>
                 <p className="text-muted-foreground mt-2 mb-4">
-                  It looks like you haven't created any lessons yet.
+                  It looks like you have not created any lessons yet.
                 </p>
                 <Button asChild>
                   <Link href="/admin/upload">

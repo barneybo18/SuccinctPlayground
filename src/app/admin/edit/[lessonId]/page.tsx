@@ -30,7 +30,7 @@ export default async function EditLessonPage({
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">Edit Lesson</h1>
           <p className="text-muted-foreground mb-8">
-            Update the details for "{lesson.title}".
+            Update the details for {lesson.title}.
           </p>
           <LessonForm lesson={lesson} />
         </div>

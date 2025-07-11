@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Award, RotateCw } from "lucide-react";
-import { completeQuiz } from "@/lib/supabase/actions";
+
 
 interface QuizProps {
   questions: {
@@ -66,9 +66,6 @@ export function Quiz({ questions, lessonId, userId }: QuizProps) {
     // Update the score in state and switch to the results view
     setScore(finalScore);
     setQuizState("submitted");
-
-    // Update the database in the background. The user doesn't need to wait for this.
-    await completeQuiz(lessonId, userId, finalScore, questions.length);
   };
 
   const handleRestart = () => {

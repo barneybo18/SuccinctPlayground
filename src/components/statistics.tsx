@@ -9,8 +9,6 @@ interface StatisticsProps {
 }
 
 export function Statistics({ completed, total }: StatisticsProps) {
-  const percentage = total > 0 ? (completed / total) * 100 : 0;
-
   return (
     <Card className="[--primary:336_84%_60%]">
       <CardHeader>

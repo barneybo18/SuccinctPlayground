@@ -349,14 +349,13 @@ export default function Home() {
               </SignedIn>
 
               <SignedOut>
-                <SignInButton mode="modal">
-                  <Button
-                    size="lg"
-                    className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
-                  >
-                    Get Started
-                  </Button>
-                </SignInButton>
+                <Button
+                  size="lg"
+                  asChild
+                  className="bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-200 shadow-lg"
+                >
+                  <Link href="/dashboard">Get Started</Link>
+                </Button>
               </SignedOut>
             </motion.div>
 

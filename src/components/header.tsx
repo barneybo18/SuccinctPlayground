@@ -18,9 +18,12 @@ export function Header() {
           </div>
         </SignedIn>
         <SignedOut>
-          <SignInButton mode="modal">
-            <Button>Sign In</Button>
-          </SignInButton>
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost"><Link href="/dashboard">Dashboard</Link></Button>
+            <SignInButton mode="modal">
+              <Button>Sign In</Button>
+            </SignInButton>
+          </div>
         </SignedOut>
       </div>
     </header>
